@@ -10,9 +10,10 @@
 
 import { appendFileSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { Plugin } from "@opencode/plugin"
 import { createShrinkHandler } from "./host-result.ts"
+import { appendStats } from "./stats.ts"
 
 function defaultStoreDir(): string {
   const local = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")
@@ -22,13 +23,17 @@ function defaultStoreDir(): string {
 export default Plugin.define({
   id: "opencode-microtools",
   async setup(ctx) {
-    const debugLog = join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "opencode-microtools", "debug.log")
+    const dataDir = process.env.OPENCODE_MICROTOOLS_DIR
+      ? dirname(process.env.OPENCODE_MICROTOOLS_DIR)
+      : join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "opencode-microtools")
+    const statsPath = join(dataDir, "stats.ndjson")
+    const debugLog = join(dataDir, "debug.log")
     const debug = (entry: unknown) => {
       try { appendFileSync(debugLog, JSON.stringify(entry) + "\n") } catch { /* diagnostics only */ }
     }
     debug({ ready: true, at: new Date().toISOString() })
     const handler = createShrinkHandler({
-      storeDir: process.env.OPENCODE_MICROTOOLS_DIR ?? defaultStoreDir(),
+      storeDir: process.env.OPENCODE_MICROTOOLS_DIR ?? join(dataDir, "originals"),
       thresholdBytes: Number(process.env.OPENCODE_MICROTOOLS_THRESHOLD ?? "") || undefined,
       enabled: {
         build: process.env.OPENCODE_MICROTOOLS_BUILD !== "off",
@@ -37,6 +42,10 @@ export default Plugin.define({
         search: process.env.OPENCODE_MICROTOOLS_SEARCH !== "off",
       },
       onError: (error) => debug({ error: String(error) }),
+      onShrink: (e) => {
+        // The TUI footer reads this file; a failed append must never fail the hook.
+        void appendStats(statsPath, { at: new Date().toISOString(), ...e }).catch((error) => debug({ error: String(error) }))
+      },
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- host event type is opaque here
     await ctx.tool.hook("execute.after", (event: any) => handler(event))

@@ -32,6 +32,7 @@ export interface ShrinkDeps {
   maxOutputBytes?: number
   enabled?: Partial<Record<ReducerId, boolean>>
   onError?: (error: unknown) => void
+  onShrink?: (entry: { tool: string; reducer: ReducerId; originalBytes: number; outputBytes: number; removedBytes: number }) => void
 }
 
 /** Tool name to reducer family. Bash stays content-detected on purpose: it can
@@ -119,6 +120,13 @@ export function createShrinkHandler(deps: ShrinkDeps) {
           originalRef: reduced.originalRef,
         }
       }
+      deps.onShrink?.({
+        tool: event.tool,
+        reducer: reduced.reduceId,
+        originalBytes: reduced.originalBytes,
+        outputBytes: reduced.outputBytes,
+        removedBytes: reduced.removedBytes,
+      })
     } catch (error) {
       report(error)
     }

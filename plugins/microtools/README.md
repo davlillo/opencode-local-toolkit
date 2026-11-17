@@ -23,6 +23,17 @@ tool finishes → execute.after hook → reducer → result.content replaced
 - If anything fails — the store, the reducer, an unexpected result shape — the
   original result is left exactly as the host produced it.
 
+## Seeing the savings
+
+- The prompt footer shows a cumulative chip like `MT −27.5 KB` once anything
+  has been compacted. It refreshes every few seconds.
+- The slash command **`/microtools`** (or its palette entry) shows a detail
+  toast: how many results were compacted, the before/after sizes and the
+  top reducer.
+- The raw ledger is `stats.ndjson` next to the store — one line per shrink
+  with timestamps, tool, reducer and byte counts. Delete it to restart the
+  counters; it is a display aid, not a source of truth for recognition.
+
 ## Configuration
 
 | Variable | Meaning |
