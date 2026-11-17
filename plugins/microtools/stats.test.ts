@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { aggregate, appendStats, EMPTY_SUMMARY, formatBytes, readStats } from "./stats.ts"
+import { aggregate, appendStats, EMPTY_SUMMARY, formatBytes, formatTokens, readStats } from "./stats.ts"
 
 const entry = (over: Partial<Parameters<typeof appendStats>[1]> = {}) => ({
   at: "2026-11-17T15:00:00Z", tool: "bash", reducer: "terminal",
@@ -57,6 +57,22 @@ test("formatBytes stays readable across magnitudes", () => {
   expect(formatBytes(512)).toBe("512 B")
   expect(formatBytes(2_048)).toBe("2.0 KB")
   expect(formatBytes(1_572_864)).toBe("1.5 MB")
+})
+
+test("token estimates flow into the aggregate, older entries contribute zero", () => {
+  const s = aggregate([
+    JSON.stringify(entry({ originalTokens: 2500, outputTokens: 500 })),
+    JSON.stringify({ at: "x", tool: "bash", reducer: "terminal", originalBytes: 10_000, outputBytes: 2_000, removedBytes: 8_000 }),
+  ].join("\n"))
+  expect(s.savedTokens).toBe(2_000)
+  expect(s.byReducer.terminal.savedTokens).toBe(2_000)
+})
+
+test("formatTokens compacts large counts", () => {
+  expect(formatTokens(0)).toBe("0")
+  expect(formatTokens(999)).toBe("999")
+  expect(formatTokens(2_340)).toBe("2.3k")
+  expect(formatTokens(1_500_000)).toBe("1.5M")
 })
 
 test("a torn trailing line does not corrupt the aggregate", async () => {

@@ -7,7 +7,7 @@
 
 import { dirname, join } from "node:path"
 import { Plugin } from "@opencode/plugin/tui"
-import { formatBytes, readStats } from "./stats.ts"
+import { formatBytes, formatTokens, readStats } from "./stats.ts"
 
 export default Plugin.define({
   id: "opencode-microtools.status",
@@ -18,12 +18,12 @@ export default Plugin.define({
       : join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "opencode-microtools")
     const statsPath = join(dataDir, "stats.ndjson")
 
-    const [stats, update] = context.storage.memory("savings", { initial: { savedBytes: 0, entries: 0 } })
-    const apply = (savedBytes: number, entries: number) => {
-      if (stats.savedBytes === savedBytes && stats.entries === entries) return
-      update((state) => { state.savedBytes = savedBytes; state.entries = entries })
+    const [stats, update] = context.storage.memory("savings", { initial: { savedTokens: 0, entries: 0 } })
+    const apply = (savedTokens: number, entries: number) => {
+      if (stats.savedTokens === savedTokens && stats.entries === entries) return
+      update((state) => { state.savedTokens = savedTokens; state.entries = entries })
     }
-    const refresh = () => { void readStats(statsPath).then((s) => apply(s.savedBytes, s.entries)) }
+    const refresh = () => { void readStats(statsPath).then((s) => apply(s.savedTokens, s.entries)) }
     refresh()
     const timer = setInterval(refresh, 5_000)
 
@@ -38,12 +38,13 @@ export default Plugin.define({
         return
       }
       const top = Object.entries(s.byReducer)
-        .sort((a, b) => b[1].savedBytes - a[1].savedBytes)[0]
-      const label = top ? `${top[0]} (${top[1].count}×, ${formatBytes(top[1].savedBytes)})` : "n/a"
+        .sort((a, b) => b[1].savedTokens - a[1].savedTokens)[0]
+      const label = top ? `${top[0]} (${top[1].count}×, ~${formatTokens(top[1].savedTokens)} tok)` : "n/a"
       context.ui.toast.show({
         title: "Microtools savings",
-        message: `${s.entries} results compacted: ${formatBytes(s.originalBytes)} became ${formatBytes(s.outputBytes)}`
-          + ` (saved ${formatBytes(s.savedBytes)}). Top reducer: ${label}.`,
+        message: `${s.entries} results compacted: saved ≈${formatTokens(s.savedTokens)} tokens`
+          + ` (${formatBytes(s.originalBytes)} became ${formatBytes(s.outputBytes)}). Top: ${label}.`
+          + " Token counts are chars/4 estimates.",
         variant: "success", duration: 10_000,
       })
     }
@@ -58,7 +59,7 @@ export default Plugin.define({
     const removeFooter = context.ui.slot({
       append: "prompt.footer.status",
       render: () => <text fg={context.theme.text.base}>
-        {stats.savedBytes > 0 ? ` MT −${formatBytes(stats.savedBytes)} ` : ""}
+        {stats.savedTokens > 0 ? ` MT −~${formatTokens(stats.savedTokens)} tok ` : ""}
       </text>,
     })
     return () => { clearInterval(timer); removeFooter() }

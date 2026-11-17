@@ -6,7 +6,7 @@
  * is deterministic and never throws into the host.
  */
 
-import { detectReducer, reduceOutput } from "./lib.ts"
+import { detectReducer, estimateTokens, reduceOutput } from "./lib.ts"
 import type { ReducerId } from "./types.ts"
 
 /** Default: only shrink results that actually cost context. */
@@ -32,7 +32,15 @@ export interface ShrinkDeps {
   maxOutputBytes?: number
   enabled?: Partial<Record<ReducerId, boolean>>
   onError?: (error: unknown) => void
-  onShrink?: (entry: { tool: string; reducer: ReducerId; originalBytes: number; outputBytes: number; removedBytes: number }) => void
+  onShrink?: (entry: {
+    tool: string
+    reducer: ReducerId
+    originalBytes: number
+    outputBytes: number
+    removedBytes: number
+    originalTokens: number
+    outputTokens: number
+  }) => void
 }
 
 /** Tool name to reducer family. Bash stays content-detected on purpose: it can
@@ -126,6 +134,9 @@ export function createShrinkHandler(deps: ShrinkDeps) {
         originalBytes: reduced.originalBytes,
         outputBytes: reduced.outputBytes,
         removedBytes: reduced.removedBytes,
+        // Approximate chars/4 estimate, matching the library's own labelling.
+        originalTokens: estimateTokens(parts.text),
+        outputTokens: estimateTokens(reduced.text),
       })
     } catch (error) {
       report(error)

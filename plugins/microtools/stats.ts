@@ -15,6 +15,9 @@ export interface StatsEntry {
   originalBytes: number
   outputBytes: number
   removedBytes: number
+  /** Approximate chars/4 estimates; absent in older entries. */
+  originalTokens?: number
+  outputTokens?: number
 }
 
 export interface ReducerStats {
@@ -22,6 +25,7 @@ export interface ReducerStats {
   originalBytes: number
   outputBytes: number
   savedBytes: number
+  savedTokens: number
 }
 
 export interface StatsSummary {
@@ -29,24 +33,26 @@ export interface StatsSummary {
   originalBytes: number
   outputBytes: number
   savedBytes: number
+  savedTokens: number
   byReducer: Record<string, ReducerStats>
   lastAt?: string
 }
 
-export const EMPTY_SUMMARY: StatsSummary = { entries: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0, byReducer: {} }
+export const EMPTY_SUMMARY: StatsSummary = { entries: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0, savedTokens: 0, byReducer: {} }
 
 function addReducer(summary: StatsSummary, entry: StatsEntry): void {
-  const bucket = summary.byReducer[entry.reducer] ?? { count: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0 }
+  const bucket = summary.byReducer[entry.reducer] ?? { count: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0, savedTokens: 0 }
   bucket.count += 1
   bucket.originalBytes += entry.originalBytes
   bucket.outputBytes += entry.outputBytes
   bucket.savedBytes += entry.removedBytes
+  bucket.savedTokens += (entry.originalTokens ?? 0) - (entry.outputTokens ?? 0)
   summary.byReducer[entry.reducer] = bucket
 }
 
 /** Aggregate NDJSON lines; malformed or partial trailing lines are skipped. */
 export function aggregate(content: string): StatsSummary {
-  const summary: StatsSummary = { entries: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0, byReducer: {} }
+  const summary: StatsSummary = { entries: 0, originalBytes: 0, outputBytes: 0, savedBytes: 0, savedTokens: 0, byReducer: {} }
   for (const line of content.split("\n")) {
     const trimmed = line.trim()
     if (!trimmed) continue
@@ -61,11 +67,14 @@ export function aggregate(content: string): StatsSummary {
         originalBytes: value.originalBytes,
         outputBytes: value.outputBytes,
         removedBytes: value.removedBytes,
+        originalTokens: typeof value.originalTokens === "number" ? value.originalTokens : undefined,
+        outputTokens: typeof value.outputTokens === "number" ? value.outputTokens : undefined,
       }
       summary.entries += 1
       summary.originalBytes += entry.originalBytes
       summary.outputBytes += entry.outputBytes
       summary.savedBytes += entry.removedBytes
+      summary.savedTokens += (entry.originalTokens ?? 0) - (entry.outputTokens ?? 0)
       addReducer(summary, entry)
       if (entry.at) summary.lastAt = entry.at
     } catch {
@@ -96,4 +105,12 @@ export function formatBytes(bytes: number): string {
   while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1 }
   const rounded = unit === 0 ? String(Math.round(value)) : value.toFixed(1)
   return `${rounded} ${units[unit]}`
+}
+
+/** Compact token count: 999 stays exact, larger values use k/M. */
+export function formatTokens(tokens: number): string {
+  if (!Number.isFinite(tokens) || tokens <= 0) return "0"
+  if (tokens < 1000) return String(Math.round(tokens))
+  if (tokens < 1_000_000) return `${(tokens / 1000).toFixed(1)}k`
+  return `${(tokens / 1_000_000).toFixed(1)}M`
 }
