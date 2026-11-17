@@ -6,7 +6,8 @@
   "type": "module",
   "os": ["win32", "linux", "darwin"],
   "files": [
-    "plugin.ts",
+    "index.ts",
+    "lib.ts",
     "host-result.ts",
     "index.ts",
     "reducers.ts",
@@ -17,8 +18,8 @@
     "README.md"
   ],
   "exports": {
-    ".": "./plugin.ts",
-    "./lib": "./index.ts"
+    ".": "./index.ts",
+    "./lib": "./lib.ts"
   },
   "scripts": {
     "test": "bun test ./ --no-env-file"

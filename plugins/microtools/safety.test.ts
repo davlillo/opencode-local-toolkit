@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { reduceOutput } from "./index.ts"
+import { reduceOutput } from "./lib.ts"
 import { makeScratchStore } from "./testing.ts"
 import { utf8Bytes } from "./text.ts"
 

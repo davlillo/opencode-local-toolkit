@@ -6,7 +6,7 @@
  * is deterministic and never throws into the host.
  */
 
-import { detectReducer, reduceOutput } from "./index.ts"
+import { detectReducer, reduceOutput } from "./lib.ts"
 import type { ReducerId } from "./types.ts"
 
 /** Default: only shrink results that actually cost context. */

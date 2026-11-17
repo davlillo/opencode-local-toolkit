@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { planReduction, renderPlan } from "./reducers.ts"
-import { reduceOutput } from "./index.ts"
+import { reduceOutput } from "./lib.ts"
 import { utf8Bytes } from "./text.ts"
 import { makeScratchStore } from "./testing.ts"
 
