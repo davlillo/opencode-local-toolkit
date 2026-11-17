@@ -8,6 +8,7 @@
  * here and the reduction library surface is re-exported from `./lib.ts`.
  */
 
+import { appendFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { Plugin } from "@opencode/plugin"
@@ -21,6 +22,11 @@ function defaultStoreDir(): string {
 export default Plugin.define({
   id: "opencode-microtools",
   async setup(ctx) {
+    const debugLog = join(process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local"), "opencode-microtools", "debug.log")
+    const debug = (entry: unknown) => {
+      try { appendFileSync(debugLog, JSON.stringify(entry) + "\n") } catch { /* diagnostics only */ }
+    }
+    debug({ ready: true, at: new Date().toISOString() })
     const handler = createShrinkHandler({
       storeDir: process.env.OPENCODE_MICROTOOLS_DIR ?? defaultStoreDir(),
       thresholdBytes: Number(process.env.OPENCODE_MICROTOOLS_THRESHOLD ?? "") || undefined,
@@ -30,6 +36,7 @@ export default Plugin.define({
         terminal: process.env.OPENCODE_MICROTOOLS_TERMINAL !== "off",
         search: process.env.OPENCODE_MICROTOOLS_SEARCH !== "off",
       },
+      onError: (error) => debug({ error: String(error) }),
     })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- host event type is opaque here
     await ctx.tool.hook("execute.after", (event: any) => handler(event))
