@@ -1,9 +1,9 @@
 import type { StreamingBackend, StreamingRecording } from "./dictation"
 import { access } from "node:fs/promises"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { join, dirname } from "node:path"
 import { launch, waitForProcess, WindowsWhisperBackend, type ProcessWait, type RunningProcess } from "./backend"
-import { audioFilterArgs, resolveAudioPipeline } from "./audio-pipeline"
+import { audioFilterArgs, resolveAudioPipeline, type AudioPipelineSettings } from "./audio-pipeline"
 
 export type RecognitionMessage =
   | { type: "ready" }
@@ -13,12 +13,16 @@ export type RecognitionMessage =
 interface Command { executable: string; args: string[] }
 
 // Capture profile shared by the real DirectShow path; audio cleanup is opt-out via env.
-export function defaultCaptureCommand(device: string | undefined, ffmpeg?: string): Command {
+export function defaultCaptureCommand(
+  device: string | undefined,
+  ffmpeg?: string,
+  audio: AudioPipelineSettings = resolveAudioPipeline(),
+): Command {
   return {
     executable: ffmpeg ?? process.env.OPENCODE_ASR_FFMPEG ?? "ffmpeg",
     args: [
       "-hide_banner", "-f", "dshow", "-i", `audio=${device}`,
-      ...audioFilterArgs(resolveAudioPipeline()),
+      ...audioFilterArgs(audio),
       "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", "65", "-f", "s16le", "pipe:1",
     ],
   }
@@ -37,18 +41,42 @@ export interface StreamingOptions {
   waitFor?: ProcessWait
 }
 
-// Worker preference: built native core when present, private Python venv otherwise.
+// The native core is only usable when both the executable and a loadable
+// libvosk.dll are reachable; otherwise recognition would fail after capture starts.
+export async function findNativeWorker(
+  executable = join(import.meta.dir, "native", "build", "dictation-core.exe"),
+  dll = process.env.DICTATION_CORE_VOSK_DLL,
+  search?: string[],
+): Promise<string | undefined> {
+  const local = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")
+  const candidates = search ?? [
+    join(dirname(executable), "libvosk.dll"),
+    dll?.trim() || undefined,
+    join(local, "opencode-asr", "venv-vosk", "Lib", "site-packages", "vosk", "libvosk.dll"),
+  ].filter((value): value is string => !!value)
+  try {
+    await access(executable)
+  } catch {
+    return undefined
+  }
+  for (const candidate of candidates) {
+    try {
+      await access(candidate)
+      return executable
+    } catch {
+      // Try the next documented location.
+    }
+  }
+  return undefined
+}
+
+// Worker preference: built native core when usable, private Python venv otherwise.
 export async function resolveWorkerCommand(
   model: string,
   options: Pick<StreamingOptions, "python" | "worker"> = {},
 ): Promise<Command> {
-  const native = join(import.meta.dir, "native", "build", "dictation-core.exe")
-  try {
-    await access(native)
-    return { executable: native, args: ["--model", model] }
-  } catch {
-    // Fall through to the private Python runtime.
-  }
+  const native = await findNativeWorker()
+  if (native) return { executable: native, args: ["--model", model] }
   const local = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")
   return {
     executable: options.python ?? join(local, "opencode-asr", "venv-vosk", "Scripts", "python.exe"),
@@ -92,6 +120,8 @@ export class WindowsStreamingBackend implements StreamingBackend {
     const local = process.env.LOCALAPPDATA ?? join(homedir(), "AppData", "Local")
     const root = join(local, "opencode-asr")
     const model = this.options.model ?? join(root, "models", "vosk-model-small-es-0.42")
+    // Validate typed audio settings before any device discovery can prompt the user.
+    const audio = resolveAudioPipeline()
     const workerCommand = this.options.workerCommand ?? await resolveWorkerCommand(model, this.options)
     try {
       await Promise.all([access(workerCommand.executable), access(model)])
@@ -106,7 +136,7 @@ export class WindowsStreamingBackend implements StreamingBackend {
       this.device = devices.length === 1 ? devices[0] : await this.options.chooseDevice?.(devices)
       if (!this.device) throw new Error("No microphone selected. Recording did not start.")
     }
-    const captureCommand = this.options.captureCommand ?? defaultCaptureCommand(this.device, this.options.ffmpeg)
+    const captureCommand = this.options.captureCommand ?? defaultCaptureCommand(this.device, this.options.ffmpeg, audio)
     signal.throwIfAborted()
     const launchProcess = this.options.launchProcess ?? launch
     const waitFor = this.options.waitFor ?? waitForProcess

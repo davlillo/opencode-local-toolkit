@@ -50,18 +50,20 @@ immediately in another session/location without waiting for another ASR event.
 - Supported host: **OpenCode 2.3.0**. Other versions leave this plugin inactive.
   It uses public OpenTUI editor methods and the host's version-specific prompt traits;
   there is no stable dedicated composer API.
-- Engine: a small native C++ core (`native/build/dictation-core.exe`, built with
-  MSVC x64 from `native/`) that denoises, recognizes and emits the same streaming
-  protocol. It loads `libvosk.dll` dynamically; see [the native core](docs/native-core.md).
-  When the executable is absent, the plugin falls back to Vosk 0.3.45 in
-  `%LOCALAPPDATA%\opencode-asr\venv-vosk`.
+- Engine: a small native C++ core (`native/build/dictation-core.exe`) that
+  denoises, recognizes and emits the same streaming protocol. It loads
+  `libvosk.dll` dynamically and is used only when both the executable and a
+  reachable DLL are present; build it from `native/` first. See
+  [the native core](docs/native-core.md). Otherwise the plugin uses Vosk 0.3.45
+  in `%LOCALAPPDATA%\opencode-asr\venv-vosk`.
 - Audio cleanup before recognition: 70 Hz high-pass, mild fixed denoise and a
   0.95 limiter with automatic level disabled; `OPENCODE_ASR_AUDIO=off` bypasses it
   and `OPENCODE_ASR_HUM_HZ=50|60` adds an explicit notch. See
   [the audio pipeline](docs/audio-pipeline.md) for measured results.
 - Model: `%LOCALAPPDATA%\opencode-asr\models\vosk-model-small-es-0.42`;
   approximately 38 MiB download, Apache-2.0 according to the official catalog.
-- `vosk-manifest.json` records pinned Python dependencies and artifact hashes.
+- `vosk-manifest.json` records pinned Python dependencies and artifact hashes. It
+  lives in `%LOCALAPPDATA%\opencode-asr` and is not shipped with the plugin.
   The model's publisher MD5 was verified; its SHA-256 is locally computed, not
   represented as a publisher-authenticated SHA-256.
 - FFmpeg must remain on PATH. `OPENCODE_ASR_FFMPEG` can override its executable;
@@ -86,8 +88,8 @@ bun run test
 bun run test:worker
 ```
 
-The full Bun suite currently passes 63 tests across 9 files, plus 2 Python
-worker-protocol tests. Unit tests cover lifecycle, cancellation, late
+The full Bun suite currently passes 66 tests across 9 files (282 assertions), plus
+2 Python worker-protocol tests. Unit tests cover lifecycle, cancellation, late
 drafts/results, bounded protocol, raw synthetic capture pipes, preserving text,
 target guards and registered commands. They do not access a microphone.
 
@@ -109,11 +111,13 @@ Two actual decodes used the same paced 6.225-second synthetic Spanish fixture.
 With the Python worker the product backend produced 11 nonempty hypotheses before
 Stop/EOF, first at about 811 ms from capture readiness, final flush about 142 ms.
 With the native C++ core behind the same backend the same fixture also produced
-11 nonempty hypotheses and the identical final text; cold start to ready measured
-about 1.8 s native versus 3.9 s Python on this machine. The five checked words,
-including "dictado", were present in both. Output is lowercase without
-punctuation. These are single synthetic runs, not a general accuracy or
-live-microphone latency guarantee.
+11 nonempty hypotheses and the identical final text. Independent repeats showed
+the native core consistently reaching readiness sooner than the Python worker in
+the same session (roughly 0.7-2.5 s faster), but exact cold-start figures varied
+with the file cache, so treat the direction as the finding and the milliseconds
+as noisy. The five checked words, including "dictado", were present in both.
+Output is lowercase without punctuation. These are single synthetic runs, not a
+general accuracy or live-microphone latency guarantee.
 
 ### Preserved limitations
 

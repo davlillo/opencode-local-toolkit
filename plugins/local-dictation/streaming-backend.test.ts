@@ -1,6 +1,35 @@
 import { expect, test } from "bun:test"
+import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { defaultCaptureCommand, parseRecognitionMessage, resolveWorkerCommand, WindowsStreamingBackend } from "./streaming-backend"
+import { defaultCaptureCommand, findNativeWorker, parseRecognitionMessage, resolveWorkerCommand, WindowsStreamingBackend } from "./streaming-backend"
+
+test("the native worker requires both the executable and a loadable libvosk.dll", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "native-probe-"))
+  try {
+    const exe = join(dir, "dictation-core.exe")
+    const dll = join(dir, "libvosk.dll")
+    expect(await findNativeWorker(exe, "", [dll])).toBeUndefined()
+
+    await writeFile(exe, "")
+    expect(await findNativeWorker(exe, "", [dll])).toBeUndefined()
+
+    await writeFile(dll, "")
+    expect(await findNativeWorker(exe, "", [dll])).toBe(exe)
+  } finally { await rm(dir, { recursive: true, force: true }) }
+})
+
+test("invalid audio settings fail before any process starts", async () => {
+  const previous = process.env.OPENCODE_ASR_AUDIO
+  process.env.OPENCODE_ASR_AUDIO = "loud"
+  try {
+    await expect(backend().startStream(new AbortController().signal, () => {}))
+      .rejects.toThrow(/OPENCODE_ASR_AUDIO/)
+  } finally {
+    if (previous === undefined) delete process.env.OPENCODE_ASR_AUDIO
+    else process.env.OPENCODE_ASR_AUDIO = previous
+  }
+})
 
 test("prefers the built native core and falls back to the private Python runtime", async () => {
   delete process.env.OPENCODE_ASR_AUDIO

@@ -19,12 +19,17 @@
     "native/build.ps1",
     "native/test-protocol.ps1",
     "native/src/main.cpp",
+    "worker_test.py",
+    "tests/fake-worker.ts",
+    "tests/fake-capture.ts",
     "requirements-vosk.lock",
     "README.md",
     "docs/install.md",
     "docs/audio-pipeline.md",
     "docs/lifecycle.md",
-    "docs/models.md"
+    "docs/models.md",
+    "docs/native-core.md",
+    "docs/publishing.md"
   ],
   "exports": {
     "./tui": "./tui.tsx"
