@@ -1,6 +1,6 @@
 {
   "name": "opencode-local-dictation",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Offline Spanish microphone dictation for the OpenCode terminal.",
   "private": true,
   "type": "module",

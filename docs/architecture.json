@@ -18,7 +18,7 @@
     { "id": "ffmpeg", "type": "external", "label": "FFmpeg 8.1.1", "sublabel": "capture + filters", "pos": [110, 440], "size": [150, 54] },
     { "id": "core", "type": "backend", "label": "Native core", "sublabel": "exe + Vosk small-es", "pos": [110, 540], "size": [150, 56], "tag": "C++ C API" },
     { "id": "venv", "type": "external", "label": "Python fallback", "sublabel": "vosk-worker.py", "pos": [390, 340], "size": [160, 54] },
-    { "id": "micro", "type": "backend", "label": "Microtools", "sublabel": "Output Reducer", "pos": [390, 140], "size": [160, 56], "tag": "not wired yet" },
+    { "id": "micro", "type": "backend", "label": "Microtools", "sublabel": "Output Reducer", "pos": [390, 140], "size": [160, 56], "tag": "execute.after hook" },
     { "id": "tools", "type": "external", "label": "Tool output", "sublabel": "build, tests, search", "pos": [390, 40], "size": [160, 54] }
   ],
   "connections": [

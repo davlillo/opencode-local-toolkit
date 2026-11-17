@@ -13,7 +13,7 @@ An interactive version with guided views is in
 | Package | What it solves | State |
 | --- | --- | --- |
 | [`plugins/local-dictation`](plugins/local-dictation/README.md) | Talk instead of typing. A microphone button beside the prompt streams a live draft, cleans the audio, and inserts final text only when you press Stop. | Working locally; host and microphone validation pending |
-| [`plugins/microtools`](plugins/microtools/README.md) | Fewer tokens per task. Deterministic reducers shrink build, test, terminal and search output before it reaches the model, and every original stays recoverable. | Sprint 1 library; not wired to the host yet |
+| [`plugins/microtools`](plugins/microtools/README.md) | Fewer tokens per task. A server plugin shrinks build, test, terminal and search output in the `execute.after` hook before it reaches the model, and every original stays recoverable. | Sprint 1 reducers, connected to the host |
 
 They are separate on purpose:
 
@@ -21,8 +21,9 @@ They are separate on purpose:
   about context size and token cost. Improving transcription does not itself save
   tokens, and compressing logs does not make speech recognition better.
 - **Different maturity.** Dictation has a UI, a native core and a test suite.
-  Microtools is an early library with no host hook yet. Keeping separate
-  `package.json` files means one can ship a release without dragging the other.
+  Microtools has a connected server hook and its reducers, but no UI yet. Keeping
+  separate `package.json` files means one can ship a release without dragging the
+  other.
 - **No shared code today.** If a shared module ever appears, a workspace can be
   introduced then; inventing one now would be ceremony.
 
@@ -67,7 +68,9 @@ docs/                      Shared architecture diagram and its source specificat
   pending, and the native review tooling in this environment could not evaluate
   the OpenCode runtime.
 - Microtools measured roughly 16% text-size reduction on its own fixture. Text
-  size is not tokens, and one fixture is not a benchmark.
+  size is not tokens, and one fixture is not a benchmark. Its hook logic is
+  covered by unit tests with fake result objects, but it has not yet been
+  exercised by a real host tool call.
 
 ## License
 

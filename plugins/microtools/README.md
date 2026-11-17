@@ -1,14 +1,39 @@
-# OpenCode Microtools — Sprint 1 (reduction core)
+# OpenCode Microtools
 
 Local, deterministic reduction of tool output before it reaches the model
 context. No network, no cloud API, no model call, no token spent on optimizing.
 
-**Status: this is a library, not yet an OpenCode host plugin.** Sprint 1 does
-not register hooks, does not read `opencode.json`, and does not know how
-OpenCode delivers tool results. `reduceOutput()` is the single call a future
-hook would make; wiring is Sprint 2+.
+**Status: a real OpenCode plugin (server side).** It registers the
+`execute.after` tool hook and shrinks completed tool results in place, keeping
+every original recoverable. The reduction core is still usable as a library.
 
-## What Sprint 1 does
+## How it connects
+
+```text
+tool finishes → execute.after hook → reducer → result.content replaced
+                                             → original stored and referenced
+                                             → metadata.microtools records the delta
+```
+
+- Only completed results are touched; errors pass through untouched.
+- Only results at or above `OPENCODE_MICROTOOLS_THRESHOLD` bytes (default 8192)
+  are considered, so trivial output is never rewritten.
+- `bash`/`shell` are classified by content (build, test, search or plain logs)
+  rather than assumed; `grep`/`search`, `build` and `test` map directly.
+- If anything fails — the store, the reducer, an unexpected result shape — the
+  original result is left exactly as the host produced it.
+
+## Configuration
+
+| Variable | Meaning |
+| --- | --- |
+| `OPENCODE_MICROTOOLS_DIR` | Directory for stored originals. Defaults to `%LOCALAPPDATA%\opencode-microtools\originals`. |
+| `OPENCODE_MICROTOOLS_THRESHOLD` | Minimum UTF-8 bytes before a result is considered. |
+| `OPENCODE_MICROTOOLS_BUILD` / `_TEST` / `_TERMINAL` / `_SEARCH` | Set to `off` to disable one reducer. |
+
+No config file is read, and no global setting is modified.
+
+## What the reduction core does
 
 - Four pure reducers: `build`, `test`, `terminal`, `search`.
 - Collapses exact duplicate lines with a counter.
@@ -23,12 +48,11 @@ hook would make; wiring is Sprint 2+.
   human explanations when `diagnostics: true`.
 - Approximate token estimate, explicitly labelled `chars/4`.
 
-## What Sprint 1 does not do
+## What it does not do
 
-- No host hook, no automatic interception, no config loading, no UI.
-- No spans/traces reconstruction, no streaming reducer, no cross-result
-  deduplication (that is the state-cache work in later sprints).
-- No retention policy or garbage collection for the store (caller's directory).
+- No UI, no spans/traces reconstruction, no streaming reducer, and no
+  cross-result deduplication (that is the state-cache work in later sprints).
+- No retention policy or garbage collection for the store.
 - The token figure is an estimate, never a provider token count.
 
 ## Usage

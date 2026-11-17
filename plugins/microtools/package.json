@@ -1,11 +1,13 @@
 {
   "name": "opencode-microtools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local, deterministic context reducers for OpenCode tool results.",
   "private": true,
   "type": "module",
   "os": ["win32", "linux", "darwin"],
   "files": [
+    "plugin.ts",
+    "host-result.ts",
     "index.ts",
     "reducers.ts",
     "store.ts",
@@ -15,7 +17,8 @@
     "README.md"
   ],
   "exports": {
-    ".": "./index.ts"
+    ".": "./plugin.ts",
+    "./lib": "./index.ts"
   },
   "scripts": {
     "test": "bun test ./ --no-env-file"
