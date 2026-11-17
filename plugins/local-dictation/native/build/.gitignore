@@ -1,0 +1,4 @@
+# Build-only output. The 26 MB libvosk.dll and its MinGW runtime are copied
+# here at build time and never committed.
+*
+!.gitignore

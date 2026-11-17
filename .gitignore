@@ -1,0 +1,43 @@
+# Dependencies, native build output and generated files
+node_modules/
+dist/
+bin/
+models/
+venv/
+venv-vosk/
+.venv/
+.cache/
+__pycache__/
+*.py[cod]
+*.bak
+
+# Local credentials and machine-specific configuration
+.env
+.env.*
+cli.json
+opencode.json
+opencode.jsonc
+manifest.json
+vosk-manifest.json
+
+# Audio, captures and diagnostic output
+*.wav
+*.pcm
+*.raw
+*.mp3
+*.flac
+*.ogg
+*.webm
+*.log
+*.ndjson
+coverage/
+artifacts/
+scratch/
+
+# Interactive diagram sidecars produced by archify visual checks
+docs/*.visual-check.html
+docs/*.visual-check.json
+docs/*.visual-check.*.png
+
+# Private implementation history
+odd/

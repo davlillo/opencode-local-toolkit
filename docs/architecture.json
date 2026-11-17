@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "opencode-local-toolkit",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "dictation-path", "label": "Dictation path", "focus": ["host", "tui", "controller", "stream", "ffmpeg", "core"], "note": "A microphone click becomes a cleaned PCM stream and returns replaceable hypotheses." },
+      { "id": "fallbacks", "label": "Fallbacks", "focus": ["stream", "core", "venv", "ffmpeg"], "note": "The native core is preferred; the private Python environment stays as a fallback." },
+      { "id": "token-layer", "label": "Token layer", "focus": ["micro", "tools"], "note": "Microtools is a separate library that is not yet wired to the host." }
+    ]
+  },
+  "components": [
+    { "id": "host", "type": "external", "label": "OpenCode 2.3.0", "sublabel": "TUI host + plugin API", "pos": [110, 40], "size": [150, 54] },
+    { "id": "tui", "type": "frontend", "label": "TUI plugin", "sublabel": "tui.tsx and controls.tsx", "pos": [110, 140], "size": [150, 56], "tag": "mic button + live draft" },
+    { "id": "controller", "type": "backend", "label": "Controller", "sublabel": "dictation.ts", "pos": [110, 240], "size": [150, 54], "tag": "target guards" },
+    { "id": "stream", "type": "backend", "label": "Streaming backend", "sublabel": "streaming-backend.ts", "pos": [110, 340], "size": [150, 56], "tag": "owns 2 processes" },
+    { "id": "ffmpeg", "type": "external", "label": "FFmpeg 8.1.1", "sublabel": "capture + filters", "pos": [110, 440], "size": [150, 54] },
+    { "id": "core", "type": "backend", "label": "Native core", "sublabel": "exe + Vosk small-es", "pos": [110, 540], "size": [150, 56], "tag": "C++ C API" },
+    { "id": "venv", "type": "external", "label": "Python fallback", "sublabel": "vosk-worker.py", "pos": [390, 340], "size": [160, 54] },
+    { "id": "micro", "type": "backend", "label": "Microtools", "sublabel": "Output Reducer", "pos": [390, 140], "size": [160, 56], "tag": "not wired yet" },
+    { "id": "tools", "type": "external", "label": "Tool output", "sublabel": "build, tests, search", "pos": [390, 40], "size": [160, 54] }
+  ],
+  "connections": [
+    { "id": "host-tui", "from": "host", "to": "tui", "label": "mouse and keymap", "variant": "emphasis", "labelAt": [330, 117] },
+    { "id": "tui-controller", "from": "tui", "to": "controller", "label": "commands", "labelAt": [330, 217] },
+    { "id": "controller-stream", "from": "controller", "to": "stream", "label": "start / stop", "labelAt": [330, 317] },
+    { "id": "stream-ffmpeg", "from": "stream", "to": "ffmpeg", "label": "spawn", "labelAt": [330, 417] },
+    { "id": "ffmpeg-core", "from": "ffmpeg", "to": "core", "label": "PCM16 16 kHz", "labelAt": [330, 517] },
+    { "id": "stream-venv", "from": "stream", "to": "venv", "label": "when core absent", "variant": "dashed", "labelAt": [325, 355] },
+    { "id": "core-tui", "from": "core", "to": "tui", "label": "partial hypotheses", "variant": "dashed", "fromSide": "left", "toSide": "left", "via": [[70, 568], [70, 168]], "labelAt": [128, 308] },
+    { "id": "tools-micro", "from": "tools", "to": "micro", "label": "reduces", "variant": "dashed", "labelAt": [530, 117] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Two plugins, one repo", "items": ["local-dictation: mic button, live draft, guarded insertion", "microtools: deterministic tool-output reducers", "Each keeps its own package and tests"] },
+    { "dot": "rose", "title": "Honest limits", "items": ["Local only; audio starts on click", "One synthetic fixture proves the pipeline, not accuracy", "Running-host and real microphone checks pending"] }
+  ]
+}

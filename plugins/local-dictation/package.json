@@ -1,0 +1,38 @@
+{
+  "name": "opencode-local-dictation",
+  "version": "0.2.0",
+  "description": "Offline Spanish microphone dictation for the OpenCode terminal.",
+  "private": true,
+  "type": "module",
+  "os": ["win32"],
+  "files": [
+    "tui.tsx",
+    "controls.tsx",
+    "dictation.ts",
+    "integration.ts",
+    "backend.ts",
+    "streaming-backend.ts",
+    "audio-pipeline.ts",
+    "vosk-worker.py",
+    "native/vosk_api.h",
+    "native/CMakeLists.txt",
+    "native/build.ps1",
+    "native/test-protocol.ps1",
+    "native/src/main.cpp",
+    "requirements-vosk.lock",
+    "README.md",
+    "docs/install.md",
+    "docs/audio-pipeline.md",
+    "docs/lifecycle.md",
+    "docs/models.md"
+  ],
+  "exports": {
+    "./tui": "./tui.tsx"
+  },
+  "scripts": {
+    "test": "bun test ./dictation.test.ts ./integration.test.ts ./probes.test.ts ./streaming.test.ts ./streaming-backend.test.ts ./live-integration.test.ts ./streaming-lifecycle.test.ts ./backend-lifecycle.test.ts ./audio-pipeline.test.ts --no-env-file",
+    "test:lifecycle": "bun test ./streaming-lifecycle.test.ts ./backend-lifecycle.test.ts --timeout 2000 --no-env-file",
+    "test:audio": "bun test ./audio-pipeline.test.ts --timeout 5000 --no-env-file",
+    "test:worker": "python -B ./worker_test.py"
+  }
+}

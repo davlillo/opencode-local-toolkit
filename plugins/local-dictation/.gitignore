@@ -1,0 +1,38 @@
+# Dependencies, native runtimes and generated output
+node_modules/
+dist/
+bin/
+models/
+venv/
+venv-vosk/
+.venv/
+.cache/
+__pycache__/
+*.py[cod]
+*.bak
+
+# Local credentials/configuration and machine-specific provenance
+.env
+.env.*
+cli.json
+opencode.json
+opencode.jsonc
+manifest.json
+vosk-manifest.json
+
+# Audio, captures and diagnostic output are never source-release inputs
+*.wav
+*.pcm
+*.raw
+*.mp3
+*.flac
+*.ogg
+*.webm
+*.log
+*.ndjson
+coverage/
+artifacts/
+scratch/
+
+# Private implementation history is not public documentation
+odd/
