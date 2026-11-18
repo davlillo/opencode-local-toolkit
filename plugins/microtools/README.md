@@ -23,6 +23,37 @@ tool finishes → execute.after hook → reducer → result.content replaced
 - If anything fails — the store, the reducer, an unexpected result shape — the
   original result is left exactly as the host produced it.
 
+## PDF extraction
+
+PDFs returned by the `read` tool are raw base64 file parts. The plugin replaces
+such a part with a compact JSON envelope holding the extracted text layer, so
+the model spends tokens on words instead of bytes:
+
+```json
+{
+  "kind": "document",
+  "file": "report.pdf",
+  "mime": "application/pdf",
+  "pages": 3,
+  "textLayer": true,
+  "chars": 4200,
+  "truncated": false,
+  "note": "The original PDF file part was replaced by this extracted text; re-read the file to view the raw PDF.",
+  "text": "…"
+}
+```
+
+- Extraction is local and offline via `unpdf` (bundled pdf.js); nothing is
+  downloaded and no model is called.
+- `textLayer: false` marks a scanned PDF (no embedded text) with an OCR note.
+- Truncation is explicit: text past `OPENCODE_MICROTOOLS_PDF_CHARS`
+  (default 100000) is cut with `truncated: true`, never silently.
+- PDFs above ~20 MiB are skipped untouched (the host fails those anyway).
+- Any failure leaves the original base64 result exactly as the host produced
+  it and appends one line to `debug.log`.
+- Converted PDF results do not enter the terminal shrink pipeline; the same
+  `execute.after` hook handles both, in that order.
+
 ## Seeing the savings
 
 - The prompt footer shows a cumulative chip like `MT −27.5 KB` once anything
@@ -40,6 +71,7 @@ tool finishes → execute.after hook → reducer → result.content replaced
 | --- | --- |
 | `OPENCODE_MICROTOOLS_DIR` | Directory for stored originals. Defaults to `%LOCALAPPDATA%\opencode-microtools\originals`. |
 | `OPENCODE_MICROTOOLS_THRESHOLD` | Minimum UTF-8 bytes before a result is considered. |
+| `OPENCODE_MICROTOOLS_PDF_CHARS` | Character cap for extracted PDF text (default 100000, truncation is flagged). |
 | `OPENCODE_MICROTOOLS_BUILD` / `_TEST` / `_TERMINAL` / `_SEARCH` | Set to `off` to disable one reducer. |
 
 No config file is read, and no global setting is modified.

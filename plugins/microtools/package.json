@@ -9,6 +9,8 @@
     "index.ts",
     "lib.ts",
     "host-result.ts",
+    "pdf-doc.ts",
+    "pdf-doc.test.ts",
     "stats.ts",
     "tui.tsx",
     "reducers.ts",
@@ -25,5 +27,8 @@
   },
   "scripts": {
     "test": "bun test ./ --no-env-file"
+  },
+  "dependencies": {
+    "unpdf": "2.2.1"
   }
 }

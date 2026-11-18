@@ -13,6 +13,7 @@ import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { Plugin } from "@opencode/plugin"
 import { createShrinkHandler } from "./host-result.ts"
+import { createPdfHandler } from "./pdf-doc.ts"
 import { appendStats } from "./stats.ts"
 
 function defaultStoreDir(): string {
@@ -47,7 +48,19 @@ export default Plugin.define({
         void appendStats(statsPath, { at: new Date().toISOString(), ...e }).catch((error) => debug({ error: String(error) }))
       },
     })
+    // One combined execute.after handler: the PDF interceptor runs first and,
+    // when it converts a PDF result into a JSON text envelope, the event is
+    // opted out of the shrink pipeline. Registering a second hook instead would
+    // have both handlers observe the same event and risk the terminal reducer
+    // re-processing the freshly produced JSON text.
+    const interceptPdf = createPdfHandler({
+      onDebug: debug,
+      charLimit: Number(process.env.OPENCODE_MICROTOOLS_PDF_CHARS ?? "") || undefined,
+    })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- host event type is opaque here
-    await ctx.tool.hook("execute.after", (event: any) => handler(event))
+    await ctx.tool.hook("execute.after", async (event: any) => {
+      if (await interceptPdf(event)) return
+      await handler(event)
+    })
   },
 })
